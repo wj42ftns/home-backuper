@@ -1,0 +1,30 @@
+{
+  "name": "undefined",
+  "version": "0.0.1",
+  "author": {
+    "name": "Dmitrii Salnikov",
+    "email": "wj42ftns@gmail.com",
+    "url": "https://github.com/wj42ftns"
+  },
+  "license": "MIT",
+  "main": "src/index.js",
+  "prettier": {
+    "printWidth": 120
+  },
+  "devDependencies": {
+    "eslint": "^7.6.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "prettier": "^2.0.5",
+    "prettier-standard": "^16.3.0"
+  },
+  "dependencies": {
+    "human-format": "^0.11.0",
+    "lodash": "^4.17.20"
+  }
+}

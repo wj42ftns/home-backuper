@@ -1,0 +1,19 @@
+{
+  "extends": [
+    "standard",
+    "prettier",
+    "prettier/standard"
+  ],
+  "plugins": [
+    "import",
+    "prettier",
+    "standard"
+  ],
+  "rules": {
+    "semi": [2, "never"],
+    "no-nested-ternary": 2,
+    "no-var": 2,
+    "react/prop-types": 0,
+    "react/display-name": 0
+  }
+}
