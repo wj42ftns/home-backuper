@@ -1,47 +1,14 @@
-const { execSync, spawnSync } = require('child_process')
-const os = require('os')
+const { execSync } = require('child_process')
 const without = require('lodash/without')
 const humanFormat = require('human-format')
-
-const { username: USER_NAME, homedir: HOME_DIR } = os.userInfo()
-const MEDIA_USER_PATH = `/media/${USER_NAME}`
-const BACKUP_DIRECTORY_NAME = 'HOME_BACKUP'
-
-// https://www.baeldung.com/linux/bash-interactive-prompts
-// say yes in interactive script example: run('yes | apt remove baobab')
-// answer to multiply answers in interactive script example: run('printf "bot\nn\nJava" | ./questions.sh')
-const run = (command, options = {}) => execSync(command, { stdio: 'inherit', ...options })
-
-function getMediaItems () {
-  return execSync(`ls ${MEDIA_USER_PATH}`)
-    .toString()
-    .split('\n')
-    .filter(Boolean)
-}
-
-function getDirectorySize (path) {
-  return spawnSync('du', ['-ksh', path])
-    .output.toString()
-    .split('\t')[0]
-    .slice(1)
-}
-
-const hasErr = command => {
-  try {
-    run(command, { stdio: 'ignore' })
-  } catch (err) {
-    return true
-  }
-
-  return false
-}
-const hasNotErr = command => !hasErr(command)
+const { HOME_DIR, MEDIA_USER_PATH, BACKUP_DIRECTORY_NAME } = require('./constants')
+const { getMediaItems, getDirectorySize, hasNotErr, run, zenity } = require('./helpers')
 
 async function detectPluggedUsb () {
   const mediaItemsBefore = getMediaItems()
   try {
-    run(
-      `zenity --info --width=300 --text='Считаны текущие подключенные устройства.\\n\\nВставьте флешку или жесткий диск, куда необходимо записать резервную копию пользовательских данных и после этого нажмите "ОК"'`
+    zenity(
+      `--info --text='Считаны текущие подключенные устройства.\\n\\nВставьте флешку или жесткий диск, куда необходимо записать резервную копию пользовательских данных и после того как она определится системой — нажмите "ОК"'`
     )
   } catch (err) {
     process.exit(0)
@@ -50,19 +17,11 @@ async function detectPluggedUsb () {
   const mediaItemsAfter = getMediaItems()
   const newItems = without(mediaItemsAfter, ...mediaItemsBefore)
   if (newItems.length > 1) {
-    try {
-      run(
-        `zenity --warn --width=300 --text='Обнаружено сразу несколько новых устройств!\\n\\nРезервная копия будет записана на накопитель с наибольшей свободной памятью'`
-      )
-    } catch (err) {
-      process.exit(0)
-    }
+    run(
+      `zenity --warn --width=300 --text='Обнаружено сразу несколько новых устройств!\\n\\nРезервная копия будет записана на накопитель с наибольшей свободной памятью'`
+    )
   } else if (!newItems.length) {
-    try {
-      run("zenity --error --width=300 --text='Не обнаружено ни одного нового подключенного устройства!'")
-    } catch (err) {
-      //
-    }
+    zenity("--error --text='Не обнаружено ни одного нового подключенного устройства!'")
     process.exit(0)
   }
 
@@ -90,62 +49,65 @@ async function detectPluggedUsb () {
 
 async function makeBackup () {
   const device = await detectPluggedUsb()
-  console.log(`|42| device ->    `, device)
+
 
   const homeFilesHumanSize = getDirectorySize(HOME_DIR)
   const homeFilesSize = humanFormat.parse(homeFilesHumanSize)
 
-  console.log(`|42| homeFilesHumanSize ->    `, homeFilesHumanSize)
-  console.log(`|42| homeFilesSize ->    `, homeFilesSize)
   let availableSizeInDevice = device.size
-  console.log(`|42| availableSizeInDevice ->    `, availableSizeInDevice)
   const pathToPrevBackup = `${device.path}/${BACKUP_DIRECTORY_NAME}`
-  console.log(`|42| pathToPrevBackup ->    `, pathToPrevBackup)
-  const hasPrevBackup = hasNotErr(pathToPrevBackup) 
-  console.log(`|42| hasPrevBackup ->    `, hasPrevBackup)
+  const hasPrevBackup = hasNotErr(pathToPrevBackup)
   if (hasPrevBackup) {
     const backupDirectoryHumanSize = getDirectorySize(pathToPrevBackup)
-    console.log(`|42| backupDirectoryHumanSize ->    `, backupDirectoryHumanSize)
     availableSizeInDevice += humanFormat.parse(backupDirectoryHumanSize)
-    console.log(`|42| availableSizeInDevice ->    `, availableSizeInDevice)
   }
 
   if (homeFilesSize >= availableSizeInDevice) {
-    try {
-      run(
-        `zenity --error --width=300 --text='Не могу записать!\\n\\nСлишком мало места для записи данных.\\nНужно: "${homeFilesHumanSize}", а доступно только: "${humanFormat(
-          availableSizeInDevice
-        ).replace(' ', '')}"'`
-      )
-    } catch (err) {
-      //
-    }
+    const humanAvailableSizeInDevice = humanFormat(availableSizeInDevice).replace(' ', '')
+    zenity(
+      `--error --text='Не могу записать!\\n\\nСлишком мало места для записи данных.\\nНужно: "${homeFilesHumanSize}", а доступно только: "${humanAvailableSizeInDevice}"'`
+    )
     process.exit(0)
   }
 
   if (hasPrevBackup) {
-    console.log(`|42| before remove`)
-    run(
-      `rm -rf ${pathToPrevBackup} | zenity --progress --pulsate --auto-close --auto-kill --text="Удаление прошлой резервной копии... | не вынимать накопитель!"`
+    zenity(
+      `rm -rf ${pathToPrevBackup} | zenity --progress --pulsate --auto-close --auto-kill --text="<b>Не вынимать накопитель!</b>\\n\\tУдаление прошлой резервной копии..."`
     )
-    console.log(`|42| after remove`)
   }
 
-  try {
-    console.log(`|42| before cp`)
-    run(
-      `cp -r ${HOME_DIR}/Downloads/my ${pathToPrevBackup} | zenity --progress --pulsate --auto-close --auto-kill --text="Создание новой резервной копии... | не вынимать накопитель!"`
+    zenity(
+      `cp -r ${HOME_DIR} ${pathToPrevBackup} | zenity --progress --pulsate --auto-close --auto-kill --text="<b>Не вынимать накопитель!</b>\\n\\tСоздание новой резервной копии...`
     )
-    console.log(`|42| after cp`)
-    run("zenity --info --width=300 --text='Создание резервной копии успешно завершено.'")
-  } catch (err) {
-    //
-  }
+    zenity("--info --text='Создание резервной копии успешно завершено.\\nМожно извлечь накопитель.'")
   process.exit(0)
 }
 
+function restoreBackup () {
+  console.log(`|42| restoreBackup`)
+}
+
 async function main () {
-  await makeBackup()
+  const MAKE_BACKUP = 'MAKE_BACKUP'
+  const RESTORE_BACKUP = 'RESTORE_BACKUP'
+  const response = zenity(
+    `--list --radiolist --title "Выбор действия" --text "Что необходимо сделать?" --column "" --column "" --column "Действие" FALSE "${MAKE_BACKUP}" "Создать резервную копию" FALSE "${RESTORE_BACKUP}" "Восстановить резервную копию" --hide-column 2`,
+    { stdio: 'pipe' }
+  )
+    .toString()
+    .trim()
+
+  switch (response) {
+    case MAKE_BACKUP:
+      await makeBackup()
+      break
+    case RESTORE_BACKUP:
+      restoreBackup()
+      break
+
+    default:
+      break
+  }
 }
 
 main()
