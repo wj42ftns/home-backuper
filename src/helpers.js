@@ -7,7 +7,7 @@ const { MEDIA_USER_PATH } = require('./constants')
 exports.run = (command, options = {}) => execSync(command, { stdio: 'inherit', ...options })
 
 exports.getMediaItems = () => {
-  return execSync(`ls ${MEDIA_USER_PATH}`)
+  return execSync(`ls '${MEDIA_USER_PATH}'`)
     .toString()
     .split('\n')
     .filter(Boolean)
