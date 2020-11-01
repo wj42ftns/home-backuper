@@ -8,7 +8,7 @@ async function detectPluggedUsb () {
   const mediaItemsBefore = getMediaItems()
   try {
     zenity(
-      `--info --text='Считаны текущие подключенные устройства.\\n\\nВставьте флешку или жесткий диск, куда необходимо записать резервную копию пользовательских данных и после того как она определится системой — нажмите "ОК"'`
+      `--info --text='Считаны текущие подключенные устройства.\\n\\nВставьте флешку или жесткий диск, куда/откуда необходимо записать резервную копию пользовательских данных и после того как она определится системой — нажмите "ОК"'`
     )
   } catch (err) {
     process.exit(0)
@@ -56,9 +56,10 @@ async function makeBackup () {
   const homeFilesSize = humanFormat.parse(homeFilesHumanSize)
 
   let availableSizeInDevice = device.size
-  const pathToPrevBackup = `'${device.path}/${BACKUP_DIRECTORY_NAME}'`
-  const hasPrevBackup = hasNotErr(`stat ${pathToPrevBackup}`)
-  if (hasPrevBackup) {
+  const pathToPrevBackup = `${device.path}/${BACKUP_DIRECTORY_NAME}`
+  const escapedPathToPrevBackup = `'${pathToPrevBackup}'`
+  const hasPrevBackup = hasNotErr(`stat ${escapedPathToPrevBackup}`)
+  if (hasPrevBackup && homeFilesSize < availableSizeInDevice) {
     const backupDirectoryHumanSize = getDirectorySize(pathToPrevBackup)
     availableSizeInDevice += humanFormat.parse(backupDirectoryHumanSize)
   }
@@ -73,15 +74,15 @@ async function makeBackup () {
 
   if (hasPrevBackup) {
     zenity(
-      `rm -rf ${pathToPrevBackup} | zenity --progress --pulsate --auto-close --auto-kill --text="<b>Не вынимать накопитель!</b>\\n\\tУдаление устаревшей резервной копии..."`
+      `rm -rf ${escapedPathToPrevBackup} | zenity --progress --pulsate --auto-close --auto-kill --text="<b>Не вынимать накопитель!</b>\\n\\tУдаление устаревшей резервной копии..."`
     )
   }
 
   zenity(
-    `--info --text='Cейчас будет создана резервная копия пользовательских данных.\\nХод процесса будет отображён в терминале.\\nВсего будет скопировано: "<b><${homeFilesHumanSize}/b>"\\n<b>В процессе работы не вынимать накопитель!</b>'`
+    `--info --text='Сейчас будет создана резервная копия пользовательских данных.\\nХод процесса будет отображён в терминале.\\nВсего будет скопировано: "<b>${homeFilesHumanSize}</b>"\\n<b>В процессе работы не вынимать накопитель!</b>'`
   )
   try {
-    run(`rsync -azvh --info=progress2 '${HOME_DIR}' ${pathToPrevBackup}`)
+    run(`rsync -azvh --info=progress2 '${HOME_DIR}' ${escapedPathToPrevBackup}`)
   } catch (err) {
     // при permission errors на каждую такую ошибку накручивает process exit number
   }
@@ -99,15 +100,17 @@ async function restoreBackup () {
     )
     process.exit(0)
   }
+
+  const backupDirectoryHumanSize = getDirectorySize(pathToPrevBackup)
   zenity(
-    `--info --text='Пользовательские данные сейчас будут восстановлены.\\nХод процесса будет отображён в терминале.\\nВсего будет скопировано: "<b><${device.humanSize}/b>"\\n<b>В процессе работы не вынимать накопитель!</b>'`
+    `--info --text='Пользовательские данные сейчас будут восстановлены.\\nХод процесса будет отображён в терминале.\\nВсего будет скопировано: "<b>${backupDirectoryHumanSize}</b>"\\n<b>В процессе работы не вынимать накопитель!</b>'`
   )
   try {
     run(`rsync --ignore-existing -azvh --info=progress2 '${pathToPrevBackup}/' '${HOME_DIR}'`)
   } catch (err) {
     // при permission errors на каждую такую ошибку накручивает process exit number
   }
-  
+
   zenity(`--info --text='Пользовательские данные восстановлены.\\n<b>Можно извлечь накопитель.</b>'`)
 }
 

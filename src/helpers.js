@@ -14,6 +14,7 @@ exports.getMediaItems = () => {
 }
 
 exports.getDirectorySize = path => {
+  exports.zenity(`--info --text='Сейчас может на продолжительное время призадуматься без внешних индикаторов — будет определяться размер директории'`)
   return spawnSync('du', ['-ksh', path])
     .output.toString()
     .split('\t')[0]
