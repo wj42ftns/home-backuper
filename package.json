@@ -1,15 +1,22 @@
 {
-  "name": "undefined",
+  "name": "home-backuper",
   "version": "0.0.1",
+  "engines": {
+    "node": "14.12.0"
+  },
   "author": {
     "name": "Dmitrii Salnikov",
     "email": "wj42ftns@gmail.com",
     "url": "https://github.com/wj42ftns"
   },
   "license": "MIT",
+  "description": "Pet project for making and restore user home directory backup",
   "main": "src/index.js",
   "prettier": {
     "printWidth": 120
+  },
+  "scripts": {
+    "build": "pkg src/index.js --targets=linux --output dist/backuper.exe"
   },
   "devDependencies": {
     "eslint": "^7.6.0",
@@ -20,6 +27,7 @@
     "eslint-plugin-prettier": "^3.1.4",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
+    "pkg": "^4.4.9",
     "prettier": "^2.0.5",
     "prettier-standard": "^16.3.0"
   },
