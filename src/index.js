@@ -48,7 +48,12 @@ async function detectPluggedUsb () {
 }
 
 async function makeBackup () {
-  run(`rm -rf '${HOME_DIR}/.cache'`)
+  try {
+    run(`rm -rf '${HOME_DIR}/.cache'`)
+  } catch (err) {
+    // может не хватить доступа на удаление
+  }
+  
 
   const device = await detectPluggedUsb()
 
