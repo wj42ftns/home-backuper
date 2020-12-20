@@ -49,6 +49,7 @@ async function detectPluggedUsb () {
 
 async function makeBackup () {
   try {
+    run(`rm -rf '${HOME_DIR}/.local/share/Trash/*'`)
     run(`rm -rf '${HOME_DIR}/.cache'`)
   } catch (err) {
     // может не хватить доступа на удаление
